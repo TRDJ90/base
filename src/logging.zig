@@ -5,6 +5,7 @@ pub const LogLevel = enum {
     debug,
     warning,
     err,
+    none,
 };
 
 pub const Logger = union(enum) {
@@ -12,7 +13,7 @@ pub const Logger = union(enum) {
 
     pub fn log(self: Logger, level: LogLevel, data: []const u8) !void {
         switch (self) {
-            .console => |console| return console.log(level, data),
+            .console => |console| return try console.log(level, data),
         }
     }
 };
@@ -27,8 +28,13 @@ pub const ConsoleLogger = struct {
     out: std.fs.File.Writer,
 
     pub fn init() ConsoleLogger {
+        var output_writer = std.io.getStdOut().writer();
+        output_writer.print("\nInitialize console logger\n", .{}) catch {
+            unreachable;
+        };
+
         return .{
-            .out = std.io.getStdOut().writer(),
+            .out = output_writer,
         };
     }
 
@@ -38,6 +44,7 @@ pub const ConsoleLogger = struct {
             LogLevel.warning => try self.out.print("{s}[warn]  {s}{s}\n", .{ ansi_yellow, data, ansi_reset }),
             LogLevel.debug => try self.out.print("{s}[debug] {s}{s}\n", .{ ansi_blue, data, ansi_reset }),
             LogLevel.err => try self.out.print("{s}[error] {s}{s}\n", .{ ansi_red, data, ansi_reset }),
+            LogLevel.none => try self.out.print("{s}", .{data}),
         }
     }
 };
